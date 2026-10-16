@@ -166,7 +166,7 @@
       <div>
         <h4>Legal</h4>
         <ul>
-          <li><a href="../legal/privacy.html">Privacy Policy</a></li><li><a href="../legal/cookies.html">Cookie Policy</a></li><li><a href="../legal/accessibility.html">Accessibility</a></li><li><a href="../legal/terms.html">Terms</a></li>
+          <li><a href="../legal/privacy.html">Privacy Policy</a></li><li><a href="../legal/cookies.html">Cookies Policy</a></li><li><a href="../legal/terms.html">Terms &amp; Conditions</a></li><li><button type="button" class="footer-link-btn" id="cookie-settings-link">Cookie Settings</button></li>
         </ul>
       </div>
       
@@ -174,24 +174,23 @@
     <div class="footer-bottom">
       <span>&copy; 2026 NTS Group. All Rights Reserved.</span>
       <span>93 Central Rd, Worcester Park, KT4 8DY</span>
-      <button type="button" class="footer-link-btn" id="cookie-settings-link">Cookie Settings</button>
     </div>
   </div>
 </footer>
 
-<div id="cookie-banner" role="dialog" aria-label="Cookie preferences">
-  <p><strong>We use cookies.</strong> Necessary cookies make the site work; with your permission we also use functional, analytics and marketing cookies. See our <a href="../legal/cookies.html">Cookie Policy</a>.</p>
+<div id="cookie-banner" role="dialog" aria-label="Cookie preferences" aria-describedby="cookie-banner-text" tabindex="-1">
+  <p id="cookie-banner-text"><strong>We use cookies.</strong> Necessary cookies make the site work; with your permission we may also use functional, analytics and marketing cookies. See our <a href="../legal/cookies.html">Cookie Policy</a>.</p>
   <div class="row">
-    <button class="btn btn-primary btn-sm" id="cookie-accept-all">Accept All</button>
-    <button class="btn btn-secondary btn-sm" id="cookie-reject">Reject Non-Essential</button>
-    <button class="btn btn-ghost" id="cookie-manage">Manage Preferences</button>
+    <button class="btn btn-primary btn-sm" id="cookie-accept-all" type="button">Accept All</button>
+    <button class="btn btn-secondary btn-sm" id="cookie-reject" type="button">Reject Non-Essential</button>
+    <button class="btn btn-ghost" id="cookie-manage" type="button" aria-expanded="false" aria-controls="cookie-prefs">Manage Preferences</button>
   </div>
   <div id="cookie-prefs">
-    <div class="cookie-cat"><span>Necessary (always on)</span><input type="checkbox" checked disabled /></div>
-    <div class="cookie-cat"><span>Functional</span><input type="checkbox" id="ck-functional" /></div>
-    <div class="cookie-cat"><span>Analytics</span><input type="checkbox" id="ck-analytics" /></div>
-    <div class="cookie-cat"><span>Marketing</span><input type="checkbox" id="ck-marketing" /></div>
-    <button class="btn btn-primary btn-sm" id="cookie-save-prefs" style="margin-top:12px;">Save Preferences</button>
+    <div class="cookie-cat"><label for="ck-necessary"><span>Necessary (always on)</span><small>Needed for the site to work and to remember your cookie choice. Can't be switched off.</small></label><input type="checkbox" id="ck-necessary" checked disabled aria-disabled="true" /></div>
+    <div class="cookie-cat"><label for="ck-functional"><span>Functional</span><small>Remember your preferences and enable optional features.</small></label><input type="checkbox" id="ck-functional" /></div>
+    <div class="cookie-cat"><label for="ck-analytics"><span>Analytics</span><small>Help us understand how the site is used so we can improve it.</small></label><input type="checkbox" id="ck-analytics" /></div>
+    <div class="cookie-cat"><label for="ck-marketing"><span>Marketing</span><small>Measure the performance of our promotional activity.</small></label><input type="checkbox" id="ck-marketing" /></div>
+    <button class="btn btn-primary btn-sm" id="cookie-save-prefs" type="button" style="margin-top:12px;">Save Preferences</button>
   </div>
 </div>
 

@@ -40,77 +40,167 @@
     });
   });
 
-  /* ---------- Cookie consent banner ---------- */
-  var COOKIE_KEY = 'nts_cookie_consent_v1';
+  /* ---------- Cookie consent (UK GDPR / PECR) ----------
+     - Nothing optional runs until the visitor opts in: no pre-ticked boxes,
+       no implied consent from scrolling/browsing/closing, no auto-dismiss.
+     - The choice is stored (first-party, strictly necessary) in localStorage and
+       re-requested after CONSENT_MAX_AGE_DAYS or when CONSENT_VERSION is bumped
+       (bump it whenever cookie purposes/providers change materially).
+     - Optional scripts/embeds are written in the HTML as inert placeholders and
+       are only switched on when their category is consented:
+         <script type="text/plain" data-consent="analytics" src="…"></script>
+         <script type="text/plain" data-consent="marketing">...inline code...</script>
+         <iframe data-consent="marketing" data-src="https://…"></iframe>
+       Code can also use window.NTSConsent.has('analytics') / .onChange(fn), and
+       register clean-up for a category with .registerCleanup('analytics', fn).
+     - Withdrawing consent deletes known non-essential cookies/storage and, if
+       an optional script had already been activated, reloads the page so it stops. */
+  var COOKIE_KEY = 'nts_cookie_consent_v2';
+  try { localStorage.removeItem('nts_cookie_consent_v1'); } catch(e){}   // superseded record from the earlier banner
+  var CONSENT_VERSION = 2;
+  var CONSENT_MAX_AGE_DAYS = 180;
+  var CATEGORIES = ['functional', 'analytics', 'marketing'];
+  // Cookie-name patterns removed when the matching category is withdrawn.
+  // This site sets none itself today; these cover common third-party tools so
+  // that adding one later can't leave its cookies behind.
+  var COOKIE_PATTERNS = {
+    analytics: [/^_ga/, /^_gid$/, /^_gat/, /^_gcl_/, /^__utm/, /^_hj/, /^_pk_/, /^ajs_/, /^mp_/, /^_clck$/, /^_clsk$/, /^_dc_gtm_/],
+    marketing: [/^_fbp$/, /^_fbc$/, /^fr$/, /^IDE$/, /^test_cookie$/, /^_ttp$/, /^_tt_/, /^_pin_/, /^li_/, /^lidc$/, /^bcookie$/, /^MUID$/, /^_uet/, /^YSC$/, /^VISITOR_INFO1_LIVE$/, /^__gads$/, /^__gpi$/],
+    functional: []
+  };
+  var consentListeners = [], cleanups = {functional: [], analytics: [], marketing: []};
+  var activatedCategories = {};
+
+  function readConsent(){
+    try {
+      var c = JSON.parse(localStorage.getItem(COOKIE_KEY));
+      if(!c || c.version !== CONSENT_VERSION || !c.timestamp) return null;
+      if(Date.now() - c.timestamp > CONSENT_MAX_AGE_DAYS * 86400000) return null; // expired → ask again
+      return c;
+    } catch(e){ return null; }
+  }
+  var consent = readConsent();   // null = no valid choice yet → everything optional stays OFF
+  function has(cat){ return cat === 'necessary' || !!(consent && consent[cat] === true); }
+
+  function deleteCookie(name){
+    var host = location.hostname, parts = host.split('.'), domains = [undefined, host];
+    for(var i = 1; i < parts.length - 1; i++) domains.push('.' + parts.slice(i).join('.'));
+    domains.push('.' + host);
+    var past = '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    domains.forEach(function(d){ document.cookie = name + past + (d ? '; domain=' + d : ''); });
+  }
+  function clearCategory(cat){
+    var pats = COOKIE_PATTERNS[cat] || [];
+    (document.cookie ? document.cookie.split('; ') : []).forEach(function(kv){
+      var name = kv.split('=')[0];
+      if(pats.some(function(re){ return re.test(name); })) deleteCookie(name);
+    });
+    (cleanups[cat] || []).forEach(function(fn){ try { fn(); } catch(e){} });
+  }
+
+  // Switch on inert optional scripts/embeds whose category has been consented.
+  function activateOptional(){
+    document.querySelectorAll('script[type="text/plain"][data-consent]').forEach(function(old){
+      var cat = old.getAttribute('data-consent');
+      if(!has(cat) || old.getAttribute('data-consent-done')) return;
+      old.setAttribute('data-consent-done', '1');
+      var s = document.createElement('script');
+      Array.prototype.forEach.call(old.attributes, function(a){
+        if(a.name !== 'type' && a.name !== 'data-consent' && a.name !== 'data-consent-done') s.setAttribute(a.name, a.value);
+      });
+      s.text = old.text;
+      old.parentNode.insertBefore(s, old.nextSibling);
+      activatedCategories[cat] = true;
+    });
+    document.querySelectorAll('iframe[data-consent][data-src]').forEach(function(f){
+      var cat = f.getAttribute('data-consent');
+      if(has(cat) && !f.getAttribute('src')){ f.setAttribute('src', f.getAttribute('data-src')); activatedCategories[cat] = true; }
+    });
+  }
+
+  window.NTSConsent = {
+    has: has,
+    get: function(){ return consent ? {necessary:true, functional:!!consent.functional, analytics:!!consent.analytics, marketing:!!consent.marketing} : {necessary:true, functional:false, analytics:false, marketing:false}; },
+    onChange: function(fn){ consentListeners.push(fn); if(consent) fn(window.NTSConsent.get()); },
+    registerCleanup: function(cat, fn){ if(cleanups[cat]) cleanups[cat].push(fn); }
+  };
+
   var banner = document.getElementById('cookie-banner');
   if(banner){
-    var stored = null;
-    try { stored = JSON.parse(localStorage.getItem(COOKIE_KEY)); } catch(e){}
-    var ckFunctional = document.getElementById('ck-functional');
-    var ckAnalytics = document.getElementById('ck-analytics');
-    var ckMarketing = document.getElementById('ck-marketing');
-    function applyStoredToCheckboxes(){
-      if(!stored) return;
-      if(ckFunctional) ckFunctional.checked = !!stored.functional;
-      if(ckAnalytics) ckAnalytics.checked = !!stored.analytics;
-      if(ckMarketing) ckMarketing.checked = !!stored.marketing;
-    }
-    function saveConsent(obj){
-      stored = obj;
-      try { localStorage.setItem(COOKIE_KEY, JSON.stringify(obj)); } catch(e){}
-      banner.classList.add('hidden');
-    }
-    if(stored){
-      banner.classList.add('hidden');
-      applyStoredToCheckboxes();
-    } else {
-      // Shows automatically on first visit, then auto-dismisses if the
-      // visitor doesn't engage with it — this only hides the banner, it
-      // does not record any consent, so non-essential cookies stay off
-      // and the banner will show again on a future visit. Any interaction
-      // with the banner itself (hover, focus, touch) cancels the timer so
-      // it never disappears out from under someone using it.
-      var autoHideTimer = setTimeout(function(){ banner.classList.add('hidden'); }, 8000);
-      var cancelAutoHide = function(){ clearTimeout(autoHideTimer); };
-      banner.addEventListener('mouseenter', cancelAutoHide);
-      banner.addEventListener('focusin', cancelAutoHide);
-      banner.addEventListener('touchstart', cancelAutoHide, {passive:true});
-    }
+    var ckBoxes = {
+      functional: document.getElementById('ck-functional'),
+      analytics: document.getElementById('ck-analytics'),
+      marketing: document.getElementById('ck-marketing')
+    };
     var acceptAll = document.getElementById('cookie-accept-all');
     var rejectAll = document.getElementById('cookie-reject');
     var manageBtn = document.getElementById('cookie-manage');
     var saveBtn = document.getElementById('cookie-save-prefs');
     var prefsPanel = document.getElementById('cookie-prefs');
     var settingsLink = document.getElementById('cookie-settings-link');
-    if(acceptAll) acceptAll.addEventListener('click', function(){
-      saveConsent({necessary:true, functional:true, analytics:true, marketing:true});
-    });
-    if(rejectAll) rejectAll.addEventListener('click', function(){
-      saveConsent({necessary:true, functional:false, analytics:false, marketing:false});
-    });
-    if(manageBtn) manageBtn.addEventListener('click', function(){
-      prefsPanel.classList.toggle('show');
-    });
-    if(saveBtn) saveBtn.addEventListener('click', function(){
-      saveConsent({
-        necessary:true,
-        functional: ckFunctional.checked,
-        analytics: ckAnalytics.checked,
-        marketing: ckMarketing.checked
-      });
-    });
-    // "Cookie Settings" link in the footer: lets a visitor who already made a
-    // choice come back and change it, matching what the Cookie Policy page
-    // tells them they can do ("change your cookie preferences at any time
-    // via the cookie banner"). Without this, once dismissed the banner had
-    // no way to reappear.
-    if(settingsLink) settingsLink.addEventListener('click', function(){
-      applyStoredToCheckboxes();
+    var lastFocus = null;
+
+    // Boxes always mirror what is actually saved: all unticked until the visitor opts in.
+    function syncBoxes(){ CATEGORIES.forEach(function(c){ if(ckBoxes[c]) ckBoxes[c].checked = has(c); }); }
+    function setPanel(open){
+      prefsPanel.classList.toggle('show', open);
+      if(manageBtn) manageBtn.setAttribute('aria-expanded', String(open));
+    }
+    function showBanner(openPanel){
+      syncBoxes();
+      setPanel(!!openPanel);
       banner.classList.remove('hidden');
-      prefsPanel.classList.add('show');
-      banner.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+    function hideBanner(){
+      banner.classList.add('hidden');
+      setPanel(false);
+      if(lastFocus && document.contains(lastFocus)){ try { lastFocus.focus(); } catch(e){} }
+      lastFocus = null;
+    }
+
+    function saveConsent(choice){
+      var previous = consent;
+      var rec = {version: CONSENT_VERSION, timestamp: Date.now(), necessary: true,
+                 functional: !!choice.functional, analytics: !!choice.analytics, marketing: !!choice.marketing};
+      try { localStorage.setItem(COOKIE_KEY, JSON.stringify(rec)); } catch(e){}
+      consent = rec;
+      var needsReload = false;
+      CATEGORIES.forEach(function(c){
+        var was = !!(previous && previous[c]);
+        if(was && !rec[c]){            // withdrawn → stop & remove
+          clearCategory(c);
+          if(activatedCategories[c]) needsReload = true;
+        }
+      });
+      activateOptional();
+      consentListeners.forEach(function(fn){ try { fn(window.NTSConsent.get()); } catch(e){} });
+      hideBanner();
+      if(needsReload) setTimeout(function(){ location.reload(); }, 50);  // halts scripts already running
+    }
+
+    if(consent){ banner.classList.add('hidden'); syncBoxes(); }   // valid choice → don't nag on every page
+    else { syncBoxes(); }                                          // no choice → banner stays until they decide
+
+    acceptAll.addEventListener('click', function(){ saveConsent({functional:true, analytics:true, marketing:true}); });
+    rejectAll.addEventListener('click', function(){ saveConsent({functional:false, analytics:false, marketing:false}); });
+    manageBtn.addEventListener('click', function(){ setPanel(!prefsPanel.classList.contains('show')); });
+    saveBtn.addEventListener('click', function(){
+      saveConsent({functional: ckBoxes.functional.checked, analytics: ckBoxes.analytics.checked, marketing: ckBoxes.marketing.checked});
+    });
+    // Footer "Cookie Settings": reopen with the visitor's currently saved choices,
+    // so they can change or withdraw consent at any time (as easy as giving it).
+    if(settingsLink) settingsLink.addEventListener('click', function(){
+      lastFocus = document.activeElement;
+      showBanner(true);
+      banner.focus();
+    });
+    // Escape closes a re-opened panel without changing anything (only once a choice exists;
+    // closing never counts as consent).
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && consent && !banner.classList.contains('hidden')) hideBanner();
     });
   }
+  activateOptional();   // enables only what the stored choice allows (nothing on a first visit)
 
   /* ---------- Reveal on scroll ---------- */
   var revealEls = document.querySelectorAll('.reveal');
@@ -594,7 +684,9 @@
           // hours claim on its own card, so it shouldn't match either hours
           // filter — its 24hr/open data is placeholder, not confirmed.
           if(k === '24hr') return loc.twentyfour_hour && !loc.facilities_pending;
-          if(k === 'open_now') return !loc.facilities_pending && isOpenNow(loc);
+          // "Open Now" lists only sites with set hours that are open right now;
+          // 24-hour sites are deliberately left to the separate "Open 24 Hours" chip.
+          if(k === 'open_now') return !loc.facilities_pending && !loc.twentyfour_hour && isOpenNow(loc);
           if(k.indexOf('brand:') === 0) return loc.fuel_brand === k.slice(6);
           if(k.indexOf('fascia:') === 0) return loc.shop_brand === k.slice(7);
           // Same reasoning as 24hr/open_now above — a "Coming soon" site's

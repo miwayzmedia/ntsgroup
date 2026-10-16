@@ -1,7 +1,13 @@
 /* NTS Group — design system stylesheet, restyled to match the Miwayz
    (miwayz.com) look: Plus Jakarta Sans throughout, dark navy text/backgrounds,
    soft rounded cards with gentle shadows, circular icon badges. */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+/* Plus Jakarta Sans (SIL OFL 1.1) is self-hosted, so no request is made to Google Fonts
+   and no visitor data is sent to a third party before consent. */
+@font-face{font-family:'Plus Jakarta Sans'; font-style:normal; font-weight:400; font-display:swap; src:url('../fonts/plus-jakarta-sans-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Plus Jakarta Sans'; font-style:normal; font-weight:500; font-display:swap; src:url('../fonts/plus-jakarta-sans-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Plus Jakarta Sans'; font-style:normal; font-weight:600; font-display:swap; src:url('../fonts/plus-jakarta-sans-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Plus Jakarta Sans'; font-style:normal; font-weight:700; font-display:swap; src:url('../fonts/plus-jakarta-sans-latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'Plus Jakarta Sans'; font-style:normal; font-weight:800; font-display:swap; src:url('../fonts/plus-jakarta-sans-latin-800-normal.woff2') format('woff2');}
 :root{
   --charcoal-900:#0F2138; --charcoal-700:#3d4a5c; --charcoal-500:#6b7685; --charcoal-300:#a4acb6;
   --navy-900:#0D1B2A; --navy-800:#132A40;
@@ -366,14 +372,24 @@ legend{font-weight:600; font-size:18px; margin-bottom:12px; padding:0;}
 .footer-bottom{border-top:1px solid rgba(255,255,255,.15); padding-top:24px; font-size:13px; color:rgba(255,255,255,.5); display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;}
 .footer-link-btn{background:none; border:none; padding:0; margin:0; font:inherit; font-size:13px; color:rgba(255,255,255,.5); text-decoration:underline; cursor:pointer;}
 .footer-link-btn:hover{color:#fff;}
+.site-footer li .footer-link-btn{font-size:inherit; color:inherit; text-decoration:none; text-align:left;}
+.site-footer li .footer-link-btn:hover{color:#fff; text-decoration:underline;}
 
 /* Cookie banner */
-#cookie-banner{position:fixed; left:16px; right:16px; bottom:16px; max-width:520px; background:#fff; border:1px solid var(--neutral-300); border-radius:var(--radius-lg); padding:24px; z-index:1000; box-shadow:var(--shadow-card);}
+#cookie-banner{position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--neutral-300); padding:20px max(24px, calc((100% - 1200px) / 2)); z-index:1000; box-shadow:0 -4px 24px rgba(0,0,0,.10); display:flex; align-items:center; justify-content:space-between; gap:12px 32px; flex-wrap:wrap;}
+#cookie-banner > p{flex:1 1 420px; margin:0;}
 #cookie-banner.hidden{display:none;}
-#cookie-banner .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;}
-#cookie-prefs{display:none; margin-top:16px; border-top:1px solid var(--neutral-200); padding-top:16px;}
+@media (max-width:700px){ #cookie-banner{display:block; padding:16px;} #cookie-banner.hidden{display:none;} #cookie-banner > p{margin-bottom:14px;} #cookie-banner .row{width:100%;} #cookie-banner .row .btn{flex:1 1 100%; white-space:normal;} }
+#cookie-banner .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:0; flex:0 0 auto;}
+#cookie-prefs{display:none; flex:1 1 100%; margin-top:4px; border-top:1px solid var(--neutral-200); padding-top:16px;}
 #cookie-prefs.show{display:block;}
-.cookie-cat{display:flex; justify-content:space-between; align-items:center; padding:8px 0;}
+#cookie-prefs{max-width:440px;}
+.cookie-cat{display:grid; grid-template-columns:1fr 24px; align-items:center; column-gap:16px; padding:8px 0;}
+.cookie-cat label{display:block; cursor:pointer;}
+.cookie-cat label span{display:block; font-weight:600;}
+.cookie-cat label small{display:block; font-size:13px; line-height:1.4; color:var(--charcoal-700);}
+.cookie-cat input[type="checkbox"]:disabled{opacity:1; cursor:not-allowed; accent-color:var(--blue-700);}
+.cookie-cat input[type="checkbox"]{width:20px; height:20px; margin:0; justify-self:end; padding:0; accent-color:var(--blue-700);}
 
 /* Mobile nav sheet */
 #mobile-nav{position:fixed; inset:0; background:#fff; z-index:900; display:none; overflow-y:auto;}
@@ -408,6 +424,18 @@ body.nav-open{overflow:hidden;}
 hr{border:none; border-top:1px solid var(--neutral-200); margin:32px 0;}
 .legal-body h2{margin-top:40px;}
 .legal-body{max-width:var(--maxw-narrow);}
+.legal-body .table-wrap{overflow-x:auto; margin:12px 0 24px; border:1px solid var(--neutral-200); border-radius:var(--radius-md); background:#fff;}
+.legal-body table{border-collapse:collapse; width:100%; font-size:14px; min-width:560px;}
+.legal-body th, .legal-body td{text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--neutral-200);}
+.legal-body th{background:var(--blue-100); color:var(--blue-700); font-weight:700;}
+.legal-body tr:last-child td{border-bottom:none;}
+.legal-body--terms h2{font-size:20px; line-height:1.3; margin:32px 0 12px;}
+.legal-body--terms h3{font-size:17px; line-height:1.3; margin:24px 0 8px;}
+.legal-body--terms h4{font-size:15px; line-height:1.3; margin:20px 0 8px;}
+.legal-body--terms p{margin:0 0 14px;}
+.legal-body--terms ul{list-style:disc; padding-left:24px; margin:0 0 16px;}
+.legal-body--terms li{margin:0 0 6px;}
+.legal-body code{font-size:13px; word-break:break-all;}
 
 /* --- Friendly card-panel content blocks (used across About / Services /
    Retail Partners / Careers) --- */
@@ -452,6 +480,9 @@ section.section-dark .cta-block h2, section.section-dark .cta-block p{color:#fff
 /* --- About page: value props, people grid, leadership quote --- */
 .values-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
 @media (max-width:768px){ .values-grid{grid-template-columns:1fr;} }
+/* Two equal-width cards (About › Sustainability); stacks on mobile like .values-grid */
+.values-grid--2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:768px){ .values-grid--2{grid-template-columns:1fr;} }
 .value-card{background:#fff; border:1px solid var(--neutral-200); border-radius:var(--radius-lg); padding:28px; box-shadow:var(--shadow-card); text-align:center;}
 .value-card .icon-badge{margin:0 auto 16px; background:var(--blue-100); color:var(--blue-700);}
 .value-card h3{font-size:18px; margin-bottom:6px;}
