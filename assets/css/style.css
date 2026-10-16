@@ -424,6 +424,7 @@ body.nav-open{overflow:hidden;}
 hr{border:none; border-top:1px solid var(--neutral-200); margin:32px 0;}
 .legal-body h2{margin-top:40px;}
 .legal-body{max-width:var(--maxw-narrow);}
+.legal-body.legal-body--wide{max-width:none;}
 .legal-body .table-wrap{overflow-x:auto; margin:12px 0 24px; border:1px solid var(--neutral-200); border-radius:var(--radius-md); background:#fff;}
 .legal-body table{border-collapse:collapse; width:100%; font-size:14px; min-width:560px;}
 .legal-body th, .legal-body td{text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--neutral-200);}
